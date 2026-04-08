@@ -14,36 +14,52 @@
 <body class="text-white">
 
 <!-- NAVBAR -->
-<nav class="sticky top-0 z-50 px-10 py-6 flex justify-between items-center glass m-4 rounded-3xl">
+<nav class="fixed top-0 left-0 right-0 z-50 px-10 py-6 flex justify-between items-center glass m-4 rounded-3xl">
     <h2 class="font-extrabold text-2xl tracking-tighter">TFD</h2>
 
     <div class="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em] items-center">
         <a href="{{ route('dashboard') }}" class="text-gray-500 hover:text-white transition">Beranda</a>
         <a href="{{ route('katalog') }}" class="text-gray-500 hover:text-white transition">Katalog</a>
-        <a href="{{ route('wishlist') }}" class="text-gray-500 hover:text-white transition flex items-center gap-2">
-            Wishlist
-            @php $wishlistCount = auth()->user()->wishlistedProducts()->count(); @endphp
-            @if($wishlistCount > 0)
-                <span class="bg-emerald-500 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black">{{ $wishlistCount }}</span>
-            @endif
-        </a>
-        <a href="{{ route('keranjang') }}" class="text-white">Keranjang</a>
-        <a href="{{ route('pesanan-saya') }}" class="text-gray-500 hover:text-white transition whitespace-nowrap">Pesanan Saya</a>
-        <a href="{{ route('profil') }}" class="flex items-center gap-2 text-gray-500 hover:text-white transition group">
-            @if(Auth::user()->avatar)
-                <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-5 h-5 rounded-full object-cover border border-white/10 group-hover:border-white/30 transition-all">
-            @else
-                <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black group-hover:bg-white/20 transition-all">
-                    {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                </div>
-            @endif
-            Profil
-        </a>
+        
+        @auth
+            <a href="{{ route('wishlist') }}" class="text-gray-500 hover:text-white transition flex items-center gap-2">
+                Wishlist
+                @php $wishlistCount = auth()->user()->wishlistedProducts()->count(); @endphp
+                @if($wishlistCount > 0)
+                    <span class="bg-emerald-500 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black">{{ $wishlistCount }}</span>
+                @endif
+            </a>
+            <a href="{{ route('keranjang') }}" class="text-white">Keranjang</a>
+            <a href="{{ route('pesanan-saya') }}" class="text-gray-500 hover:text-white transition whitespace-nowrap flex items-center gap-2">
+                Pesanan Saya
+                @php
+                    $activeOrders = \App\Models\Order::where('user_id', auth()->id())
+                        ->whereNotIn('status', ['Selesai', 'Dibatalkan'])
+                        ->count();
+                @endphp
+                @if($activeOrders > 0)
+                    <span class="w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>
+                @endif
+            </a>
+            <a href="{{ route('profil') }}" class="flex items-center gap-2 text-gray-500 hover:text-white transition group">
+                @if(Auth::user()->avatar)
+                    <img src="{{ str_starts_with(Auth::user()->avatar, 'images/') ? asset(Auth::user()->avatar) : asset('storage/' . Auth::user()->avatar) }}" class="w-5 h-5 rounded-full object-cover border border-white/10 group-hover:border-white/30 transition-all">
+                @else
+                    <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black group-hover:bg-white/20 transition-all">
+                        {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
+                    </div>
+                @endif
+                Profil
+            </a>
 
-        <form action="{{ route('logout') }}" method="POST" class="ml-4">
-            @csrf
-            <button class="bg-white/5 hover:bg-red-500/10 hover:text-red-500 px-4 py-2 rounded-xl border border-white/5 transition">LOGOUT</button>
-        </form>
+            <form action="{{ route('logout') }}" method="POST" class="ml-4">
+                @csrf
+                <button class="bg-white/5 hover:bg-red-500/10 hover:text-red-500 px-4 py-2 rounded-xl border border-white/5 transition">LOGOUT</button>
+            </form>
+        @else
+            <a href="{{ route('login') }}" class="text-gray-500 hover:text-white transition">Login</a>
+            <a href="{{ route('register') }}" class="bg-white text-black px-6 py-2 rounded-xl border border-white/5 hover:bg-emerald-500 hover:text-white transition-all ml-4 scale-90">DAFTAR</a>
+        @endauth
     </div>
 </nav>
 

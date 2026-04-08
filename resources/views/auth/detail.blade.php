@@ -15,14 +15,21 @@
 <body class="text-white">
 
 <!-- NAVBAR -->
-<nav class="sticky top-0 z-50 px-10 py-6 flex justify-between items-center glass m-4 rounded-3xl">
+<nav class="fixed top-0 left-0 right-0 z-50 px-10 py-6 flex justify-between items-center glass m-4 rounded-3xl">
     <h2 class="font-extrabold text-2xl tracking-tighter">TFD</h2>
 
     <div class="flex gap-8 text-[11px] font-black uppercase tracking-[0.2em] items-center">
         <a href="{{ route('dashboard') }}" class="text-gray-500 hover:text-white transition">Beranda</a>
         <a href="{{ route('katalog') }}" class="text-gray-500 hover:text-white transition">Katalog</a>
-
+        
         @auth
+            <a href="{{ route('wishlist') }}" class="text-gray-500 hover:text-white transition flex items-center gap-2">
+                Wishlist
+                @php $wishlistCount = auth()->user()->wishlistedProducts()->count(); @endphp
+                @if($wishlistCount > 0)
+                    <span class="bg-emerald-500 text-black text-[9px] px-1.5 py-0.5 rounded-full font-black">{{ $wishlistCount }}</span>
+                @endif
+            </a>
             <a href="{{ route('keranjang') }}" class="text-gray-500 hover:text-white transition">Keranjang</a>
             <a href="{{ route('pesanan-saya') }}" class="text-gray-500 hover:text-white transition whitespace-nowrap flex items-center gap-2">
                 Pesanan Saya
@@ -37,7 +44,7 @@
             </a>
             <a href="{{ route('profil') }}" class="flex items-center gap-2 text-gray-500 hover:text-white transition group">
                 @if(Auth::user()->avatar)
-                    <img src="{{ asset('storage/' . Auth::user()->avatar) }}" class="w-5 h-5 rounded-full object-cover border border-white/10 group-hover:border-white/30 transition-all">
+                    <img src="{{ str_starts_with(Auth::user()->avatar, 'images/') ? asset(Auth::user()->avatar) : asset('storage/' . Auth::user()->avatar) }}" class="w-5 h-5 rounded-full object-cover border border-white/10 group-hover:border-white/30 transition-all">
                 @else
                     <div class="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-[8px] font-black group-hover:bg-white/20 transition-all">
                         {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
@@ -114,23 +121,20 @@
                 </button>
                 
                 @auth
-                @php 
-                    $isWishlisted = auth()->user()->wishlistedProducts()->where('product_id', $product->id)->exists();
-                @endphp
-                <button type="button" 
-                        onclick="event.preventDefault(); document.getElementById('wishlist-form-{{ $product->id }}').submit();"
-                        class="w-20 h-20 rounded-3xl {{ $isWishlisted ? 'bg-emerald-500 text-black' : 'border border-white/10 text-white' }} flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl">
-                    <i data-lucide="heart" class="w-6 h-6 {{ $isWishlisted ? 'fill-current' : '' }}"></i>
-                </button>
+                    @php 
+                        $isWishlisted = auth()->user()->wishlistedProducts()->where('product_id', $product->id)->exists();
+                    @endphp
+                    <button type="button" 
+                            onclick="event.preventDefault(); document.getElementById('wishlist-form').submit();"
+                            class="w-20 h-20 rounded-3xl {{ $isWishlisted ? 'bg-emerald-500 text-black' : 'border border-white/10 text-white' }} flex items-center justify-center hover:scale-105 active:scale-95 transition-all shadow-xl">
+                        <i data-lucide="heart" class="w-6 h-6 {{ $isWishlisted ? 'fill-current' : '' }}"></i>
+                    </button>
+                    <form id="wishlist-form" action="{{ route('wishlist.toggle', $product->id) }}" method="POST" class="hidden">
+                        @csrf
+                    </form>
                 @endauth
             </div>
         </form>
-        
-        @auth
-        <form id="wishlist-form-{{ $product->id }}" action="{{ route('wishlist.toggle', $product->id) }}" method="POST" class="hidden">
-            @csrf
-        </form>
-        @endauth
         @else
         <div class="bg-red-600/5 border border-red-600/20 p-8 rounded-[2rem] text-center">
             <p class="text-red-500 font-black tracking-widest uppercase text-sm mb-2">Item Terjual Habis</p>

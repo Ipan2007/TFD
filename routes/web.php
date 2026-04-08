@@ -15,6 +15,43 @@ Route::get('/', function () {
     return redirect()->route('dashboard');
 });
 
+    /* ================= AREA PUBLIK (Katalog & Detail) ================= */
+
+    Route::get('/dashboard', function (Request $request) {
+        $search = $request->query('search');
+        $query = Product::latest();
+        
+        if ($search) {
+            $query->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('brand', 'LIKE', "%{$search}%");
+        }
+        
+        $products = $query->withAvg('orderItems', 'rating')->get();
+        return view('auth.dashboard', compact('products'));
+    })->name('dashboard');
+
+    Route::get('/katalog', function (Request $request) {
+        $search = $request->query('search');
+        $query = Product::query();
+        
+        if ($search) {
+            $query->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('brand', 'LIKE', "%{$search}%");
+        }
+        
+        $products = $query->withAvg('orderItems', 'rating')->get();
+        return view('auth.katalog', compact('products', 'search'));
+    })->name('katalog');
+
+    Route::get('/detail/{product}', function (Product $product) {
+        $reviews = \App\Models\OrderItem::where('product_id', $product->id)
+            ->whereNotNull('rating')
+            ->with('order.user')
+            ->latest()
+            ->get();
+        return view('auth.detail', compact('product', 'reviews'));
+    })->name('detail');
+
 /* ================= AUTH (Guest Only) ================= */
 
 Route::middleware('guest')->group(function () {
@@ -35,7 +72,7 @@ Route::middleware('auth')->group(function () {
     /* ================= ADMIN DASHBOARD ================= */
 
     Route::middleware('is_admin')->group(function () {
-        Route::get('/admin-dashboard', function () {
+        Route::get('/admin/dashboard', function () {
             $totalRevenue = Order::sum('total');
             $totalOrders = Order::count();
             $totalProducts = Product::count();
@@ -249,6 +286,76 @@ Route::middleware('auth')->group(function () {
 
             return response()->json(['success' => true, 'message' => 'Petugas berhasil ditambahkan, password default: TFDpetugas2026']);
         })->name('admin.staff.store');
+
+        /* ================= KELOLA TRANSAKSI ================= */
+        Route::get('/admin/kelola-transaksi', function (\Illuminate\Http\Request $request) {
+            $status = $request->query('status');
+            $query = \App\Models\Order::with('items')->orderBy('created_at', 'desc');
+            
+            if ($status && $status !== 'Semua') {
+                $query->where('status', $status);
+            }
+
+            $totalTransaksi = \App\Models\Order::count();
+            $totalRevenue = \App\Models\Order::sum('total');
+            $pendingOrders = \App\Models\Order::where('status', 'Menunggu Verifikasi')->count();
+            $transaksiList = $query->paginate(10)->withQueryString();
+            
+            return view('auth.admin-kelola-transaksi', compact('totalTransaksi', 'totalRevenue', 'pendingOrders', 'transaksiList'));
+        })->name('admin.kelola-transaksi');
+
+        Route::put('/admin/transaksi/{order}', function (\App\Models\Order $order, \Illuminate\Http\Request $request) {
+            $validated = $request->validate([
+                'status' => 'required|in:Menunggu Pembayaran,Menunggu Verifikasi,Diproses,Dikirim,Selesai,Dibatalkan'
+            ]);
+
+            // Kunci jika status sudah Selesai atau Dibatalkan
+            if (in_array($order->status, ['Selesai', 'Dibatalkan'])) {
+                return response()->json(['success' => false, 'message' => 'Status pesanan yang sudah Selesai atau Dibatalkan tidak dapat diubah lagi.'], 400);
+            }
+
+            // Kembalikan stok jika dibatalkan
+            if ($validated['status'] === 'Dibatalkan' && $order->status !== 'Dibatalkan') {
+                foreach ($order->items as $item) {
+                    $product = \App\Models\Product::find($item->product_id);
+                    if ($product) {
+                        $product->increment('stok', $item->quantity);
+                    }
+                }
+            }
+
+            $order->update($validated);
+            return response()->json(['success' => true, 'message' => 'Status transaksi berhasil diperbarui']);
+        })->name('admin.transaksi.update');
+
+        /* ================= LAPORAN ================= */
+        Route::get('/admin/laporan', function () {
+            $totalPendapatan = \App\Models\Order::sum('total');
+            $totalProdukTerjual = \App\Models\OrderItem::sum('quantity');
+            $laporanPenjualan = \App\Models\OrderItem::with('order')
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+            
+            // Get product stock data
+            $produkStok = \App\Models\Product::get()->map(function($product) {
+                $terjual = \App\Models\OrderItem::where('product_id', $product->id)->sum('quantity');
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'stok_tersedia' => $product->stok,
+                    'stok_terjual' => $terjual,
+                    'status' => $product->stok >= 50 ? 'Aman' : ($product->stok >= 10 ? 'Menipis' : 'Habis')
+                ];
+            });
+            
+            // Get transaction data
+            $laporanTransaksi = \App\Models\Order::orderBy('created_at', 'desc')->paginate(10);
+            
+            $totalStok = \App\Models\Product::sum('stok');
+            $totalTransaksi = \App\Models\Order::count();
+            
+            return view('auth.admin-laporan', compact('totalPendapatan', 'totalProdukTerjual', 'laporanPenjualan', 'produkStok', 'laporanTransaksi', 'totalStok', 'totalTransaksi'));
+        })->name('admin.laporan');
     });
 
     /* ================= PETUGAS DASHBOARD ================= */
@@ -362,45 +469,6 @@ Route::middleware('auth')->group(function () {
             return view('auth.petugas-laporan', compact('totalPendapatan', 'totalProdukTerjual', 'laporanPenjualan', 'produkStok', 'laporanTransaksi', 'totalStok', 'totalTransaksi'));
         })->name('petugas.laporan');
     });
-
-    /* ================= DASHBOARD ================= */
-
-    /* ================= AREA PUBLIK (SESI) ================= */
-
-    Route::get('/dashboard', function (Request $request) {
-        $search = $request->query('search');
-        $query = Product::latest();
-        
-        if ($search) {
-            $query->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('brand', 'LIKE', "%{$search}%");
-        }
-        
-        $products = $query->withAvg('orderItems', 'rating')->get();
-        return view('auth.dashboard', compact('products'));
-    })->name('dashboard');
-
-    Route::get('/katalog', function (Request $request) {
-        $search = $request->query('search');
-        $query = Product::query();
-        
-        if ($search) {
-            $query->where('name', 'LIKE', "%{$search}%")
-                  ->orWhere('brand', 'LIKE', "%{$search}%");
-        }
-        
-        $products = $query->withAvg('orderItems', 'rating')->get();
-        return view('auth.katalog', compact('products', 'search'));
-    })->name('katalog');
-
-    Route::get('/detail/{product}', function (Product $product) {
-        $reviews = \App\Models\OrderItem::where('product_id', $product->id)
-            ->whereNotNull('rating')
-            ->with('order.user')
-            ->latest()
-            ->get();
-        return view('auth.detail', compact('product', 'reviews'));
-    })->name('detail');
 
 
     /* ================= TAMBAH KERANJANG ================= */
@@ -689,75 +757,7 @@ Route::middleware('auth')->group(function () {
         return back()->with('success', 'Gugugaga! Foto & Data Profil TFD Berhasil Disimpan.');
     })->name('profil.update');
 
-    /* ================= KELOLA TRANSAKSI ================= */
-        Route::get('/admin/kelola-transaksi', function (\Illuminate\Http\Request $request) {
-            $status = $request->query('status');
-            $query = \App\Models\Order::with('items')->orderBy('created_at', 'desc');
-            
-            if ($status && $status !== 'Semua') {
-                $query->where('status', $status);
-            }
 
-            $totalTransaksi = \App\Models\Order::count();
-            $totalRevenue = \App\Models\Order::sum('total');
-            $pendingOrders = \App\Models\Order::where('status', 'Menunggu Verifikasi')->count();
-            $transaksiList = $query->paginate(10)->withQueryString();
-            
-            return view('auth.admin-kelola-transaksi', compact('totalTransaksi', 'totalRevenue', 'pendingOrders', 'transaksiList'));
-        })->name('admin.kelola-transaksi');
-
-    Route::put('/admin/transaksi/{order}', function (\App\Models\Order $order, \Illuminate\Http\Request $request) {
-        $validated = $request->validate([
-            'status' => 'required|in:Menunggu Pembayaran,Menunggu Verifikasi,Diproses,Dikirim,Selesai,Dibatalkan'
-        ]);
-
-        // Kunci jika status sudah Selesai atau Dibatalkan
-        if (in_array($order->status, ['Selesai', 'Dibatalkan'])) {
-            return response()->json(['success' => false, 'message' => 'Status pesanan yang sudah Selesai atau Dibatalkan tidak dapat diubah lagi.'], 400);
-        }
-
-        // Kembalikan stok jika dibatalkan
-        if ($validated['status'] === 'Dibatalkan' && $order->status !== 'Dibatalkan') {
-            foreach ($order->items as $item) {
-                $product = \App\Models\Product::find($item->product_id);
-                if ($product) {
-                    $product->increment('stok', $item->quantity);
-                }
-            }
-        }
-
-        $order->update($validated);
-        return response()->json(['success' => true, 'message' => 'Status transaksi berhasil diperbarui']);
-    })->name('admin.transaksi.update');
-
-    /* ================= LAPORAN ================= */
-    Route::get('/admin/laporan', function () {
-        $totalPendapatan = \App\Models\Order::sum('total');
-        $totalProdukTerjual = \App\Models\OrderItem::sum('quantity');
-        $laporanPenjualan = \App\Models\OrderItem::with('order')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-        
-        // Get product stock data
-        $produkStok = \App\Models\Product::get()->map(function($product) {
-            $terjual = \App\Models\OrderItem::where('product_id', $product->id)->sum('quantity');
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'stok_tersedia' => $product->stok,
-                'stok_terjual' => $terjual,
-                'status' => $product->stok >= 50 ? 'Aman' : ($product->stok >= 10 ? 'Menipis' : 'Habis')
-            ];
-        });
-        
-        // Get transaction data
-        $laporanTransaksi = \App\Models\Order::orderBy('created_at', 'desc')->paginate(10);
-        
-        $totalStok = \App\Models\Product::sum('stok');
-        $totalTransaksi = \App\Models\Order::count();
-        
-        return view('auth.admin-laporan', compact('totalPendapatan', 'totalProdukTerjual', 'laporanPenjualan', 'produkStok', 'laporanTransaksi', 'totalStok', 'totalTransaksi'));
-    })->name('admin.laporan');
 
     /* ================= WISHLIST ================= */
     Route::get('/wishlist', [WishlistController::class, 'index'])->name('wishlist');
@@ -767,7 +767,7 @@ Route::middleware('auth')->group(function () {
         
     Route::post('/logout', function () {
         Auth::logout();
-        return redirect()->route('login');
+        return redirect()->route('katalog');
     })->name('logout');
 
 });

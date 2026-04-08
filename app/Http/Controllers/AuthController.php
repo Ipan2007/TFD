@@ -50,7 +50,7 @@ class AuthController extends Controller
             $user = Auth::user();
             // Cek apakah user adalah admin
             if ($user->isAdmin()) {
-                return redirect('/admin-dashboard');
+                return redirect('/admin/dashboard');
             }
             // Cek apakah user adalah petugas
             if ($user->isPetugas()) {

@@ -78,7 +78,7 @@
                 <div class="text-center pt-4 normal-case">
                     <p class="text-zinc-500 text-sm font-semibold">
                         Sudah punya akun? 
-                        <a href="/register" class="text-[#337a8a] hover:text-[#45a4b8] transition hover:underline">Daftar</a>
+                        <a href="{{ route('register') }}" class="text-[#337a8a] hover:text-[#45a4b8] transition hover:underline">Daftar</a>
                     </p>
                 </div>
             </form>

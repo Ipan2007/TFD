@@ -49,6 +49,10 @@
                 <i data-lucide="bar-chart-3" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
                 <span class="font-medium">Laporan</span>
             </a>
+            <a href="{{ route('admin.chat') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 hover:bg-gray-800/50 hover:text-gray-100 transition group">
+                <i data-lucide="message-square" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                <span class="font-medium">Pesan Bantuan</span>
+            </a>
         </nav>
 
         <!-- Logout -->
