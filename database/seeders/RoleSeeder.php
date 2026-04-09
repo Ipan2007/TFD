@@ -15,14 +15,19 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        Role::create([
-            'name' => 'Admin',
-            'description' => 'Administrator role dengan akses penuh',
-        ]);
+        Role::firstOrCreate(
+            ['name' => 'Admin'],
+            ['description' => 'Administrator role dengan akses penuh']
+        );
 
-        Role::create([
-            'name' => 'User',
-            'description' => 'Regular user role',
-        ]);
+        Role::firstOrCreate(
+            ['name' => 'Petugas'],
+            ['description' => 'Staff role with restricted administrative access']
+        );
+
+        Role::firstOrCreate(
+            ['name' => 'User'],
+            ['description' => 'Regular customer role']
+        );
     }
 }

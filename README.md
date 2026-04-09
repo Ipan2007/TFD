@@ -1,59 +1,86 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🏆 TFD - Trif Factory Depok
+### *Premium Thrift E-Commerce & Smart Logistics Suite*
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+![Laravel](https://img.shields.io/badge/laravel-%23FF2D20.svg?style=for-the-badge&logo=laravel&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
+![MySQL](https://img.shields.io/badge/mysql-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white)
 
-## About Laravel
+**TFD (Trif Factory Depok)** adalah platform e-commerce eksklusif yang dirancang khusus untuk industri thrift fashion kelas atas. Aplikasi ini menggabungkan estetika desain premium dengan sistem logistik cerdas untuk memberikan pengalaman belanja yang mulus dan profesional.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## ✨ Fitur Utama
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### 🚛 Smart Logistics Suite
+- **Professional Shipping Labels**: Cetak label pengiriman otomatis format A6/A7 lengkap dengan branding TFD.
+- **Smart Tracking Links**: Pelacakan paket satu-klik (JNE, J&T, Sicepat) langsung dari dashboard pelanggan.
+- **Auto-Status Management**: Pembaruan status otomatis menjadi "Dikirim" saat nomor resi diinput oleh admin.
+- **Demo Mode**: Fitur "Magic Resi" untuk melakukan simulasi proses logistik saat presentasi/demo.
 
-## Learning Laravel
+### 💳 Transaction & Payments
+- **Dynamic Checkout**: Penghitungan ongkir otomatis berdasarkan kurir yang dipilih.
+- **QRIS Payment Integration**: Pembayaran modern dengan alur verifikasi bukti bayar yang intuitif.
+- **Automated Invoicing**: Dashboard pelanggan lengkap dengan riwayat transaksi dan invoice digital.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+### 💬 Real-time Interaction
+- **Staff-Customer Chat**: Sistem komunikasi langsung antara pelanggan dan admin/petugas untuk konsultasi produk.
+- **Product Reviews**: Sistem ulasan produk berbasis rating bintang dan testimoni pelanggan.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## 🛠️ Tech Stack & Architecture
+- **Framework**: Laravel 12.x (The latest & fastest)
+- **Frontend**: Tailwind CSS (Custom Premium Dark Theme)
+- **Icons**: Lucide Icons
+- **Database**: MySQL / MariaDB
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+---
 
-### Premium Partners
+## 🚀 Panduan Instalasi
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+1. **Clone Repository**
+   ```bash
+   git clone https://github.com/Ipan2007/TFD.git
+   cd TFD
+   ```
 
-## Contributing
+2. **Install Dependencies**
+   ```bash
+   composer install
+   npm install && npm run build
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. **Environment Setup**
+   - Salin `.env.example` menjadi `.env`
+   - Sesuaikan konfigurasi database Anda.
+   ```bash
+   php artisan key:generate
+   php artisan storage:link
+   ```
 
-## Code of Conduct
+4. **Database & Seeding**
+   Jalankan perintah ini untuk membuat struktur tabel dan mengisi data awal (akunya admin, produk, dll).
+   ```bash
+   php artisan migrate:fresh --seed
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 🔐 Default Credentials (Untuk Testing)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Gunakan akun di bawah ini untuk mengakses dashboard sesuai level otoritas:
 
-## License
+| Role | Email | Password |
+| :--- | :--- | :--- |
+| **Administrator** | `admin@tfd.com` | `password123` |
+| **Petugas (Staff)** | `petugas@tfd.com` | `password123` |
+| **Customer** | `user@tfd.com` | `password123` |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## 📸 Preview Design
+*Website ini menggunakan palet warna **Zinc & Emerald** dengan efek glasmorphism untuk menciptakan kesan mewah dan eksklusif.*
+
+---
+
+© 2026 **TRIP FACTORY DEPOK (TFD)**. Developed for Academic & Professional Demonstration.
