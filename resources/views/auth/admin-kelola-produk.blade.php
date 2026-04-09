@@ -171,7 +171,7 @@
                             <tr class="border-b border-gray-700 hover:bg-gray-750 transition">
                                 <td class="px-8 py-4 text-sm text-gray-300">{{ $produktList->firstItem() + $index }}</td>
                                 <td class="px-8 py-4 text-sm">
-                                    <img src="{{ asset($product->image) }}" alt="{{ $product->name }}"
+                                    <img src="{{ str_starts_with($product->image, 'images/') ? asset($product->image) : asset('storage/' . $product->image) }}" alt="{{ $product->name }}"
                                          class="w-12 h-12 rounded object-cover border border-gray-600">
                                 </td>
                                 <td class="px-8 py-4 text-sm text-gray-300">{{ $product->name }}</td>
@@ -193,7 +193,7 @@
                                         </span>
                                     @endif                                 <td class="px-8 py-4 text-sm">
                                     <div class="flex items-center gap-2">
-                                        <button onclick="openEditModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ addslashes($product->brand) }}', {{ $product->price }}, '{{ $product->kondisi }}', {{ $product->stok }}, '{{ $product->image }}')" 
+                                        <button onclick="openEditModal({{ $product->id }}, {{ json_encode($product->name) }}, {{ json_encode($product->brand) }}, {{ $product->price }}, {{ json_encode($product->kondisi) }}, {{ $product->stok }}, {{ json_encode($product->image) }}, {{ json_encode($product->description) }})" 
                                                 class="w-9 h-9 flex items-center justify-center bg-blue-600/10 text-blue-500 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-lg shadow-blue-900/10" 
                                                 title="Edit Produk">
                                             <i data-lucide="pencil" class="w-4 h-4"></i>
@@ -282,16 +282,22 @@
                        class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500">
             </div>
 
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Deskripsi (Opsional)</label>
+                <textarea id="addDescription" placeholder="Masukkan deskripsi produk" rows="3"
+                          class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"></textarea>
+            </div>
+
             <div class="mb-6">
                 <label class="block text-sm font-medium text-gray-300 mb-2">Gambar Jaket</label>
-                <select id="addImage" required
-                       class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                    <option value="">Pilih Gambar...</option>
-                    <option value="images/jaket1.jpg">Jaket 1</option>
-                    <option value="images/jaket2.jpg">Jaket 2</option>
-                    <option value="images/jaket3.jpg">Jaket 3</option>
-                    <option value="images/jaket4.jpg">Jaket 4</option>
-                </select>
+                <div class="relative group">
+                    <input type="file" id="addImage" accept="image/*" required
+                           class="hidden">
+                    <label for="addImage" class="flex items-center justify-center gap-2 w-full bg-gray-700 border-2 border-dashed border-gray-600 rounded-xl px-4 py-4 text-gray-400 hover:text-white hover:border-blue-500 transition-all cursor-pointer group-hover:bg-gray-700/50">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                        <span id="addFileName" class="text-xs font-medium">Klik untuk pilih foto</span>
+                    </label>
+                </div>
             </div>
 
             <div class="flex gap-3">
@@ -339,22 +345,28 @@
                        class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500">
             </div>
 
-            <div class="mb-6">
+            <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-2">Stok</label>
                 <input type="number" id="editStok" placeholder="Masukkan jumlah stok" required min="0"
                        class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500">
             </div>
 
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Deskripsi (Opsional)</label>
+                <textarea id="editDescription" placeholder="Masukkan deskripsi produk" rows="3"
+                          class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500"></textarea>
+            </div>
+
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-300 mb-2">Gambar Jaket</label>
-                <select id="editImage" required
-                       class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500">
-                    <option value="">Pilih Gambar...</option>
-                    <option value="images/jaket1.jpg">Jaket 1</option>
-                    <option value="images/jaket2.jpg">Jaket 2</option>
-                    <option value="images/jaket3.jpg">Jaket 3</option>
-                    <option value="images/jaket4.jpg">Jaket 4</option>
-                </select>
+                <label class="block text-sm font-medium text-gray-300 mb-2">Gambar Jaket (Kosongi jika tidak diubah)</label>
+                <div class="relative group">
+                    <input type="file" id="editImage" accept="image/*"
+                           class="hidden">
+                    <label for="editImage" class="flex items-center justify-center gap-2 w-full bg-gray-700 border-2 border-dashed border-gray-600 rounded-xl px-4 py-4 text-gray-400 hover:text-white hover:border-blue-500 transition-all cursor-pointer group-hover:bg-gray-700/50">
+                        <i data-lucide="upload-cloud" class="w-5 h-5"></i>
+                        <span id="editFileName" class="text-xs font-medium">Klik untuk ganti foto</span>
+                    </label>
+                </div>
             </div>
 
             <div class="flex gap-3">
@@ -417,48 +429,81 @@
         document.getElementById('addForm').reset();
     }
 
+    // File selection display
+    document.getElementById('addImage').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || 'Klik untuk pilih foto';
+        document.getElementById('addFileName').textContent = fileName;
+    });
+
+    document.getElementById('editImage').addEventListener('change', function(e) {
+        const fileName = e.target.files[0]?.name || 'Klik untuk ganti foto';
+        document.getElementById('editFileName').textContent = fileName;
+    });
+
     function submitAddForm(event) {
         event.preventDefault();
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="flex items-center gap-2 justify-center"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Memproses...</span>';
+        lucide.createIcons();
 
-        const data = {
-            name: document.getElementById('addName').value,
-            brand: document.getElementById('addBrand').value,
-            price: document.getElementById('addPrice').value,
-            kondisi: document.getElementById('addKondisi').value,
-            stok: document.getElementById('addStok').value,
-            image: document.getElementById('addImage').value
-        };
+        const formData = new FormData();
+        formData.append('name', document.getElementById('addName').value);
+        formData.append('brand', document.getElementById('addBrand').value);
+        formData.append('price', document.getElementById('addPrice').value);
+        formData.append('kondisi', document.getElementById('addKondisi').value);
+        formData.append('stok', document.getElementById('addStok').value);
+        formData.append('description', document.getElementById('addDescription').value);
+        
+        const imageFile = document.getElementById('addImage').files[0];
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
 
         fetch('{{ route("admin.product.store") }}', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken
             },
-            body: JSON.stringify(data)
+            body: formData
         })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
+        .then(async response => {
+            const result = await response.json();
+            if (response.ok && result.success) {
                 alert(result.message);
-                closeAddModal();
                 location.reload();
             } else {
-                alert('Error: ' + result.message);
+                let errorMsg = result.message || 'Terjadi kesalahan';
+                if (result.errors) {
+                    errorMsg += '\n\nDetail:\n' + Object.keys(result.errors).map(f => `- ${result.errors[f].join(', ')}`).join('\n');
+                }
+                alert(errorMsg);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                lucide.createIcons();
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal mengirim data. Pastikan koneksi stabil dan file foto tidak terlalu besar.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            lucide.createIcons();
+        });
     }
 
     // Edit Modal Functions
-    function openEditModal(id, name, brand, price, kondisi, stok, image) {
+    function openEditModal(id, name, brand, price, kondisi, stok, image, description) {
         document.getElementById('editId').value = id;
         document.getElementById('editName').value = name;
         document.getElementById('editBrand').value = brand;
         document.getElementById('editPrice').value = price;
         document.getElementById('editKondisi').value = kondisi;
         document.getElementById('editStok').value = stok;
-        document.getElementById('editImage').value = image;
+        document.getElementById('editImage').value = ''; 
+        document.getElementById('editFileName').textContent = 'Klik untuk ganti foto';
+        document.getElementById('editDescription').value = description || '';
         document.getElementById('editModal').classList.remove('hidden');
     }
 
@@ -469,36 +514,57 @@
 
     function submitEditForm(event) {
         event.preventDefault();
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<span class="flex items-center gap-2 justify-center"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Menyimpan...</span>';
+        lucide.createIcons();
 
         const id = document.getElementById('editId').value;
-        const data = {
-            name: document.getElementById('editName').value,
-            brand: document.getElementById('editBrand').value,
-            price: document.getElementById('editPrice').value,
-            kondisi: document.getElementById('editKondisi').value,
-            stok: document.getElementById('editStok').value,
-            image: document.getElementById('editImage').value
-        };
+        const formData = new FormData();
+        formData.append('_method', 'PUT'); 
+        formData.append('name', document.getElementById('editName').value);
+        formData.append('brand', document.getElementById('editBrand').value);
+        formData.append('price', document.getElementById('editPrice').value);
+        formData.append('kondisi', document.getElementById('editKondisi').value);
+        formData.append('stok', document.getElementById('editStok').value);
+        formData.append('description', document.getElementById('editDescription').value);
+        
+        const imageFile = document.getElementById('editImage').files[0];
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
 
         fetch(`/admin/product/${id}`, {
-            method: 'PUT',
+            method: 'POST', 
             headers: {
-                'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': csrfToken
             },
-            body: JSON.stringify(data)
+            body: formData
         })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
+        .then(async response => {
+            const result = await response.json();
+            if (response.ok && result.success) {
                 alert(result.message);
-                closeEditModal();
                 location.reload();
             } else {
-                alert('Error: ' + result.message);
+                let errorMsg = result.message || 'Terjadi kesalahan';
+                if (result.errors) {
+                    errorMsg += '\n\nDetail:\n' + Object.keys(result.errors).map(f => `- ${result.errors[f].join(', ')}`).join('\n');
+                }
+                alert(errorMsg);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+                lucide.createIcons();
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Gagal menyimpan data.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+            lucide.createIcons();
+        });
     }
 
     // Delete Modal Functions

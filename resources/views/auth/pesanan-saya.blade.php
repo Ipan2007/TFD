@@ -172,6 +172,27 @@
                                         <p class="text-[10px] text-emerald-500 font-black tracking-widest uppercase">{{ $order->kurir ?? 'Standard TFD Logistics' }}</p>
                                     </div>
                                     <div>
+                                        <p class="text-[10px] text-gray-600 uppercase font-black tracking-widest mb-2">Nomor Resi</p>
+                                        <p class="text-[10px] {{ $order->no_resi ? 'text-blue-400 font-black' : 'text-gray-700 italic' }} tracking-widest uppercase">
+                                            @if($order->no_resi)
+                                                @php
+                                                    $courier = strtoupper($order->kurir);
+                                                    $trackingUrl = "https://www.cekresi.com/?noresi=" . $order->no_resi;
+                                                    
+                                                    if(str_contains($courier, 'JNE')) $trackingUrl = "https://www.jne.co.id/en/tracking/trace";
+                                                    elseif(str_contains($courier, 'J&T')) $trackingUrl = "https://www.jet.co.id/track";
+                                                    elseif(str_contains($courier, 'SICEPAT')) $trackingUrl = "https://www.sicepat.com/checkresi";
+                                                @endphp
+                                                <a href="{{ $trackingUrl }}" target="_blank" class="hover:underline flex items-center gap-1 group/link">
+                                                    {{ $order->no_resi }}
+                                                    <svg class="w-2.5 h-2.5 opacity-0 group-hover/link:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                                </a>
+                                            @else
+                                                Belum Tersedia
+                                            @endif
+                                        </p>
+                                    </div>
+                                    <div>
                                         <p class="text-[10px] text-gray-600 uppercase font-black tracking-widest mb-2">Estimasi Tiba</p>
                                         <p class="text-[10px] text-amber-500 font-black tracking-widest uppercase">{{ $order->created_at->addDays(2)->format('d M') }} - {{ $order->created_at->addDays(4)->format('d M Y') }}</p>
                                     </div>
@@ -216,6 +237,13 @@
                                 <button onclick="cancelOrder({{ $order->id }})" class="px-8 py-3 rounded-full text-[10px] font-black tracking-widest border border-rose-500/20 text-red-500 hover:bg-red-500/10 transition-all uppercase">
                                     Batalkan Pesanan
                                 </button>
+                            @endif
+
+                            @if($rawStatus == 'Selesai' || $rawStatus == 'Dikirim' || $rawStatus == 'Diproses')
+                                <a href="/pesanan/invoice/{{ $order->id }}" target="_blank" class="px-8 py-3 rounded-full text-[10px] font-black tracking-widest border border-white/20 text-white hover:bg-white/10 transition-all uppercase flex items-center gap-2">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                    Cetak Invoice
+                                </a>
                             @endif
 
                             @if($order->metode !== 'COD' && $rawStatus == 'Menunggu Pembayaran')
@@ -349,7 +377,7 @@
         .then(r => r.json())
         .then(res => {
             if(res.success) {
-                alert('Gugugaga! Bukti berhasil diunggah. Menunggu verifikasi tim TFD.');
+                alert('Sukses! Bukti pembayaran berhasil diunggah. Mohon tunggu verifikasi dari tim TFD.');
                 window.location.reload();
             } else {
                 alert('Error: ' + res.message);
@@ -365,7 +393,7 @@
     }
 
     function cancelOrder(id) {
-        if (confirm('Gugugaga! Yakin ingin membatalkan pesanan eksklusif ini?')) {
+        if (confirm('Konfirmasi: Apakah Anda yakin ingin membatalkan pesanan ini?')) {
             fetch(`/pesanan/batalkan/${id}`, {
                 method: 'POST',
                 headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Content-Type': 'application/json' },
@@ -421,7 +449,7 @@
         const rating = document.getElementById('ratingInput').value;
         
         if (rating == 0) {
-            alert('Gugugaga! Pilih rating bintang terlebih dahulu.');
+            alert('Peringatan: Harap pilih rating bintang terlebih dahulu.');
             return;
         }
 

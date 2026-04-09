@@ -106,6 +106,9 @@
                 <button onclick="showTab('transaksi')" class="tab-btn text-gray-400 font-semibold pb-2 hover:text-white">
                     Laporan Transaksi
                 </button>
+                <button onclick="showTab('ulasan')" class="tab-btn text-gray-400 font-semibold pb-2 hover:text-white">
+                    Ulasan Pelanggan
+                </button>
             </div>
 
             <!-- TAB CONTENT -->
@@ -355,7 +358,91 @@
                     @endif
                 </div>
             </div>
+            <!-- TAB ULASAN -->
+            <div id="tab-ulasan" class="tab-content hidden">
+                <div class="space-y-6">
+                    @forelse($reviews as $review)
+                    <div class="bg-gray-800 rounded-2xl border border-gray-700 p-8 hover:border-blue-500/30 transition shadow-xl overflow-hidden relative group">
+                        <div class="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 blur-3xl -mr-16 -mt-16"></div>
+                        
+                        <div class="flex justify-between items-start mb-6 relative z-10">
+                            <div class="flex items-center gap-4">
+                                <div class="w-12 h-12 bg-gray-900 rounded-xl flex items-center justify-center text-blue-500 border border-gray-700">
+                                    <i data-lucide="user" class="w-6 h-6"></i>
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-white uppercase tracking-tight">{{ $review->order->user->name ?? $review->order->nama }}</h4>
+                                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-black">{{ $review->product->name }} • {{ $review->created_at->format('d M Y') }}</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-1">
+                                @for($i = 1; $i <= 5; $i++)
+                                    <i data-lucide="star" class="w-4 h-4 {{ $i <= $review->rating ? 'text-amber-400 fill-amber-400' : 'text-gray-700' }}"></i>
+                                @endfor
+                            </div>
+                        </div>
+
+                        <div class="bg-black/40 rounded-xl p-6 border border-gray-700/50 mb-6 relative z-10">
+                            <p class="text-gray-300 text-sm italic leading-relaxed">"{{ $review->review }}"</p>
+                        </div>
+
+                        @if($review->admin_reply)
+                        <div class="bg-blue-600/10 rounded-xl p-6 border border-blue-600/20 ml-8 relative z-10">
+                            <p class="text-[10px] text-blue-400 font-black uppercase tracking-widest mb-2 flex items-center gap-2">
+                                <i data-lucide="message-square" class="w-3 h-3"></i> Balasan Admin
+                            </p>
+                            <p class="text-gray-300 text-sm leading-relaxed">{{ $review->admin_reply }}</p>
+                        </div>
+                        @else
+                        <div class="mt-4 flex justify-end relative z-10">
+                            <button onclick="openReplyModal({{ $review->id }}, '{{ addslashes($review->review) }}')" class="bg-blue-600/10 text-blue-500 border border-blue-600/20 px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition shadow-lg">
+                                Balas Ulasan
+                            </button>
+                        </div>
+                        @endif
+                    </div>
+                    @empty
+                    <div class="py-20 text-center bg-gray-800 rounded-2xl border border-dashed border-gray-700">
+                        <p class="text-gray-500 font-bold uppercase tracking-widest italic">Belum ada ulasan dari pelanggan.</p>
+                    </div>
+                    @endforelse
+                    
+                    @if($reviews->hasPages())
+                    <div class="mt-8">
+                        {{ $reviews->appends(['reviews_page' => $reviews->currentPage()])->links() }}
+                    </div>
+                    @endif
+                </div>
+            </div>
         </div>
+    </div>
+</div>
+
+<!-- MODAL REPLY -->
+<div id="modalReply" class="fixed inset-0 z-[60] hidden bg-black/90 backdrop-blur-3xl flex items-center justify-center p-6">
+    <div class="bg-zinc-950 border border-white/5 w-full max-w-lg rounded-[3rem] p-12 shadow-2xl relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-32 h-32 bg-blue-600/5 blur-3xl -ml-16 -mt-16"></div>
+        <h2 class="text-3xl font-black uppercase tracking-tighter mb-4 italic">Balas Ulasan</h2>
+        <div class="bg-white/5 p-4 rounded-2xl border border-white/5 mb-8">
+            <p id="customerReviewText" class="text-xs text-gray-400 italic line-clamp-3"></p>
+        </div>
+
+        <form id="formReply" onsubmit="handleReplySubmit(event)" class="space-y-8">
+            <input type="hidden" id="replyItemId">
+            <div class="space-y-4">
+                <label class="text-[10px] text-gray-600 font-black uppercase tracking-[0.2em] ml-4">Pesan Balasan</label>
+                <textarea id="replyText" class="w-full bg-white/5 border border-white/5 rounded-3xl p-6 text-sm text-gray-200 focus:outline-none focus:border-blue-500/50 transition-all min-h-[120px] placeholder:text-gray-800" placeholder="Ketik balasan Anda di sini..." required></textarea>
+            </div>
+
+            <div class="flex gap-4">
+                <button type="button" onclick="closeReplyModal()" class="flex-1 border border-white/10 py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all">
+                    BATAL
+                </button>
+                <button type="submit" class="flex-1 bg-blue-600 text-white py-5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all shadow-xl shadow-blue-500/10">
+                    SIMPAN BALASAN
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -378,6 +465,52 @@
         // Set active state on clicked button
         event.target.classList.remove('text-gray-400');
         event.target.classList.add('text-blue-500', 'border-b-2', 'border-blue-500');
+    }
+
+    function openReplyModal(itemId, reviewText) {
+        document.getElementById('replyItemId').value = itemId;
+        document.getElementById('customerReviewText').innerText = `"${reviewText}"`;
+        document.getElementById('modalReply').classList.remove('hidden');
+    }
+
+    function closeReplyModal() {
+        document.getElementById('modalReply').classList.add('hidden');
+    }
+
+    function handleReplySubmit(e) {
+        e.preventDefault();
+        const itemId = document.getElementById('replyItemId').value;
+        const reply = document.getElementById('replyText').value;
+        const btn = e.target.querySelector('button[type="submit"]');
+
+        btn.disabled = true;
+        btn.innerText = 'MENYIMPAN...';
+
+        fetch(`/admin/review/reply/${itemId}`, {
+            method: 'POST',
+            body: JSON.stringify({ reply: reply }),
+            headers: { 
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(res => {
+            if(res.success) {
+                alert(res.message);
+                window.location.reload();
+            } else {
+                alert('Gagal: ' + res.message);
+                btn.disabled = false;
+                btn.innerText = 'SIMPAN BALASAN';
+            }
+        })
+        .catch(err => {
+            alert('Kesalahan jaringan.');
+            btn.disabled = false;
+            btn.innerText = 'SIMPAN BALASAN';
+        });
     }
 </script>
 

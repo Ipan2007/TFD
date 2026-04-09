@@ -113,7 +113,7 @@
             </div>
         @else
             <div class="glass p-12 rounded-3xl text-center">
-                <p class="text-gray-400 font-bold">Gugugaga! Data pesanan tidak ditemukan.</p>
+                <p class="text-gray-400 font-bold">Maaf, data pesanan tidak ditemukan atau telah kedaluwarsa.</p>
                 <a href="{{ route('dashboard') }}" class="mt-6 inline-block text-emerald-500 font-black uppercase tracking-widest text-xs border-b border-emerald-500 pb-1">Kembali ke Beranda</a>
             </div>
         @endif

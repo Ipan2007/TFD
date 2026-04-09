@@ -134,27 +134,41 @@
                     </div>
                 </div>
 
-                <!-- Products Card -->
-                <div class="bg-black border border-gray-800 rounded-2xl p-6 hover:border-emerald-600/50 transition-all duration-300 shadow-lg group">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <p class="text-gray-500 text-[10px] font-bold uppercase tracking-wider text-emerald-500/70">TOTAL PRODUK</p>
-                            <h3 class="text-3xl font-black text-white mt-1">
-                                {{ $totalProducts }}
-                            </h3>
-                        </div>
-                        <div class="w-10 h-10 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
-                            <i data-lucide="package" class="w-6 h-6"></i>
-                        </div>
-                    </div>
-                    <div class="mt-4 flex items-center gap-2">
-                        <span class="text-gray-500 text-[11px] font-medium flex items-center gap-1">
-                            <div class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
-                            Stok Tersedia
-                        </span>
-                    </div>
                 </div>
             </div>
+
+            <!-- LOW STOCK ALERT (PETUGAS) -->
+            @if($lowStockProducts->count() > 0)
+            <div class="mb-8 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 relative overflow-hidden group">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl -mr-16 -mt-16 group-hover:scale-150 transition-transform duration-700"></div>
+                <div class="flex items-center justify-between relative z-10">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-emerald-500/20 rounded-xl flex items-center justify-center text-emerald-500">
+                            <i data-lucide="alert-circle" class="w-6 h-6 animate-pulse"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-black text-white uppercase tracking-tight">Perlu Restock</h3>
+                            <p class="text-[11px] text-gray-400 mt-0.5">Ada {{ $lowStockProducts->count() }} barang dengan stok menipis.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                    @foreach($lowStockProducts as $p)
+                    <div class="bg-black/40 border border-emerald-500/10 rounded-xl p-4 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-lg bg-gray-800 overflow-hidden">
+                                <img src="{{ asset('storage/' . $p->image) }}" class="w-full h-full object-cover">
+                            </div>
+                            <div>
+                                <p class="text-[11px] font-bold text-gray-200 uppercase truncate w-32">{{ $p->name }}</p>
+                                <p class="text-[10px] text-emerald-500 font-black tracking-widest uppercase">Stok: {{ $p->stok }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
 
             <!-- TRANSACTIONS TABLE -->
             <div class="bg-black border border-gray-800 rounded-2xl overflow-hidden shadow-xl">

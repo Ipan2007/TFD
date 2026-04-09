@@ -12,11 +12,19 @@ class OrderItem extends Model
         'product_name',
         'quantity',
         'price',
-        'subtotal'
+        'subtotal',
+        'rating',
+        'review',
+        'admin_reply'
     ];
 
     public function order()
     {
         return $this->belongsTo(Order::class);
+    }
+
+    public function product()
+    {
+        return $this->belongsTo(Product::class);
     }
 }

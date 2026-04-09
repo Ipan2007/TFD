@@ -207,16 +207,31 @@
                                 </td>
                                 <td class="px-8 py-4 text-sm">
                                     <div class="flex items-center gap-2">
-                                        <button onclick="openDetailModal({{ $order->id }}, '{{ $order->transaction_id ?? '#TRX-' . str_pad($order->id, 5, '0', STR_PAD_LEFT) }}', '{{ addslashes($order->nama) }}', '{{ $order->hp }}', '{{ addslashes($order->alamat) }}', '{{ $order->metode }}', {{ $order->total }}, '{{ $order->status }}', '{{ $order->bukti_pembayaran }}', {{ json_encode($order->items) }})" 
+                                        <button onclick="viewDetail(this)" 
+                                                data-order-id="{{ $order->id }}"
+                                                data-transaction-id="{{ $order->transaction_id ?? '#TRX-' . str_pad($order->id, 5, '0', STR_PAD_LEFT) }}"
+                                                data-nama="{{ $order->nama }}"
+                                                data-hp="{{ $order->hp }}"
+                                                data-alamat="{{ $order->alamat }}"
+                                                data-metode="{{ $order->metode }}"
+                                                data-total="{{ $order->total }}"
+                                                data-status="{{ $order->status }}"
+                                                data-bukti="{{ $order->bukti_pembayaran }}"
+                                                data-items="{{ json_encode($order->items) }}"
                                                 class="w-9 h-9 flex items-center justify-center bg-gray-600/10 text-gray-400 rounded-lg hover:bg-gray-600 hover:text-white transition shadow-lg shadow-gray-900/10" 
                                                 title="Detail Transaksi">
                                             <i data-lucide="eye" class="w-4 h-4"></i>
                                         </button>
-                                        <button onclick="openStatusModal({{ $order->id }}, '{{ $order->status }}')" 
+                                        <button onclick="openStatusModal({{ $order->id }}, '{{ $order->status }}', '{{ $order->no_resi }}')" 
                                                 class="w-9 h-9 flex items-center justify-center bg-emerald-600/10 text-emerald-500 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-lg shadow-emerald-900/10" 
                                                 title="Update Status">
                                             <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                                         </button>
+                                        <a href="{{ route('petugas.cetak-label', $order->id) }}" target="_blank"
+                                                class="w-9 h-9 flex items-center justify-center bg-blue-600/10 text-blue-500 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-lg shadow-blue-900/10" 
+                                                title="Cetak Label Pengiriman">
+                                            <i data-lucide="printer" class="w-4 h-4"></i>
+                                        </a>
                                     </div>
                                 </td>
                             </tr>
@@ -336,9 +351,14 @@
                     </div>
                 </div>
                 
-                <button type="button" onclick="closeDetailModal()" class="mt-8 w-full bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-lg active:scale-95">
-                    Tutup Detail
-                </button>
+                <div class="flex gap-4 mt-8">
+                    <button type="button" onclick="closeDetailModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-lg active:scale-95">
+                        Tutup Detail
+                    </button>
+                    <a id="detailCetakLabel" href="#" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                        <i data-lucide="printer" class="w-3 h-3"></i> Cetak Label
+                    </a>
+                </div>
             </div>
         </div>
     </div>
@@ -363,6 +383,21 @@
                     <option value="Selesai">Selesai</option>
                     <option value="Dibatalkan">Dibatalkan</option>
                 </select>
+            </div>
+
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Nomor Resi (Opsional)</label>
+                <div class="relative group">
+                    <input type="text" id="resiInput" placeholder="Masukkan nomor resi pengiriman..."
+                           oninput="handleResiInput(this)"
+                           class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-emerald-500 transition-all pr-12">
+                    <button type="button" onclick="generateSimulatedResi()" 
+                            class="absolute right-2 top-1.5 p-2 text-gray-400 hover:text-emerald-400 hover:bg-emerald-500/10 rounded-lg transition-all"
+                            title="Simulasi Generate Resi (Untuk Demo)">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p id="resiHint" class="text-[10px] text-gray-500 mt-2 uppercase italic transition-all">Diperlukan jika status diubah menjadi 'Dikirim'</p>
             </div>
 
             <div class="flex gap-3">
@@ -402,6 +437,21 @@
     });
 
     // Detail Modal Functions
+    function viewDetail(button) {
+        const id = button.getAttribute('data-order-id');
+        const transactionId = button.getAttribute('data-transaction-id');
+        const nama = button.getAttribute('data-nama');
+        const hp = button.getAttribute('data-hp');
+        const alamat = button.getAttribute('data-alamat');
+        const metode = button.getAttribute('data-metode');
+        const total = button.getAttribute('data-total');
+        const status = button.getAttribute('data-status');
+        const bukti = button.getAttribute('data-bukti');
+        const items = JSON.parse(button.getAttribute('data-items'));
+
+        openDetailModal(id, transactionId, nama, hp, alamat, metode, total, status, bukti, items);
+    }
+
     function openDetailModal(id, transactionId, nama, hp, alamat, metode, total, status, bukti, items) {
         document.getElementById('detailId').value = id;
         document.getElementById('detailTransactionId').textContent = transactionId;
@@ -412,6 +462,8 @@
         document.getElementById('detailTotal').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(total);
         
         const statusBadge = document.getElementById('detailStatusBadge');
+        document.getElementById('detailCetakLabel').href = `/petugas/cetak-label/${id}`;
+
         if (statusBadge) {
             statusBadge.textContent = status.toUpperCase();
             const statusColors = {
@@ -461,11 +513,28 @@
         document.getElementById('detailModal').classList.add('hidden');
     }
 
-    function openStatusModal(id, currentStatus) {
+    function openStatusModal(id, currentStatus, currentResi = '') {
         updateOrderId = id;
         document.getElementById('statusOrderId').value = id;
         document.getElementById('statusSelect').value = currentStatus;
+        document.getElementById('resiInput').value = currentResi && currentResi !== 'null' ? currentResi : '';
         document.getElementById('statusModal').classList.remove('hidden');
+    }
+
+    function handleResiInput(input) {
+        const statusSelect = document.getElementById('statusSelect');
+        const hint = document.getElementById('resiHint');
+        
+        if (input.value.trim() !== '' && statusSelect.value === 'Diproses') {
+            statusSelect.value = 'Dikirim';
+            hint.textContent = 'Smart Mode: Status otomatis diubah ke DIKIRIM';
+            hint.classList.remove('text-gray-500');
+            hint.classList.add('text-blue-400', 'font-bold');
+        } else if (input.value.trim() === '') {
+            hint.textContent = "Diperlukan jika status diubah menjadi 'Dikirim'";
+            hint.classList.remove('text-blue-400', 'font-bold');
+            hint.classList.add('text-gray-500');
+        }
     }
 
     function closeStatusModal() {
@@ -473,28 +542,48 @@
         updateOrderId = null;
     }
 
+    function generateSimulatedResi() {
+        const input = document.getElementById('resiInput');
+        const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const prefixes = ['TFD-JNE-', 'TFD-JNT-', 'TFD-SCP-', 'TFD-EXP-'];
+        const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+        
+        input.value = randomPrefix + randomStr;
+        handleResiInput(input);
+        
+        // Visual feedback
+        input.classList.add('ring-2', 'ring-emerald-500');
+        setTimeout(() => input.classList.remove('ring-2', 'ring-emerald-500'), 1000);
+    }
+
     function submitStatusUpdate(event) {
         event.preventDefault();
         const newStatus = document.getElementById('statusSelect').value;
+        const noResi = document.getElementById('resiInput').value;
 
         fetch(`/petugas/transaksi/${updateOrderId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({ status: newStatus, no_resi: noResi })
         })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                alert(result.message);
+        .then(async response => {
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message || 'Status berhasil diperbarui');
                 location.reload();
             } else {
-                alert('Error: ' + result.message);
+                const errorMessage = result.message || (result.errors ? Object.values(result.errors).flat().join('\n') : 'Terjadi kesalahan sistem');
+                alert('Gagal: ' + errorMessage);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: Koneksi bermasalah atau server error');
+        });
     }
 
     window.onclick = function(event) {

@@ -14,7 +14,12 @@ class Order extends Model
         'alamat',
         'metode',
         'total',
-        'status'
+        'status',
+        'bukti_pembayaran',
+        'kurir',
+        'ongkir',
+        'no_resi',
+        'expired_at'
     ];
 
     public function user()

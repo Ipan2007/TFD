@@ -122,8 +122,7 @@
                 </label>
             </div>
 
-            <p class="mb-4 text-[10px] font-black text-gray-700 uppercase tracking-[0.4em] text-center border-t border-white/10 pt-6 pb-2">Metode Pembayaran</p>
-            <p class="mb-8 text-[10px] font-black text-gray-700 uppercase tracking-[0.4em] text-center border-b border-gray-900 pb-6">Metode Pembayaran</p>
+            <p class="mb-8 text-[10px] font-black text-gray-700 uppercase tracking-[0.4em] text-center border-y border-white/10 py-6">Metode Pembayaran</p>
 
             <div class="grid grid-cols-2 gap-8">
                 <label class="flex flex-col items-center gap-4 border border-white/5 p-10 rounded-[2.5rem] cursor-pointer hover:border-white transition-all group has-[:checked]:bg-white has-[:checked]:text-black">
@@ -145,12 +144,12 @@
             <div class="bg-white p-4 rounded-3xl shadow-2xl inline-block mb-6">
                 <img src="{{ asset('images/qris.jpg') }}" class="w-48 h-auto rounded-xl">
             </div>
-            <p class="text-[9px] text-gray-700 italic font-black uppercase tracking-widest leading-relaxed">"Gugugaga! Pastikan nominal transfer sesuai dengan total tagihan."</p>
+            <p class="text-[9px] text-gray-700 italic font-black uppercase tracking-widest leading-relaxed">"PENTING! Pastikan nominal transfer sesuai dengan total tagihan agar verifikasi berjalan cepat."</p>
         </div>
 
         <button type="submit" 
                 class="w-full bg-white text-black py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.5em] hover:bg-emerald-500 hover:text-white transition-all shadow-2xl active:scale-95 mt-10">
-            KLIMAKS TRANSAKSI
+            KONFIRMASI PESANAN
         </button>
 
     </form>

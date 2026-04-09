@@ -66,6 +66,12 @@
 
 <!-- DETAIL CONTENT -->
 <div class="px-16 py-20 grid grid-cols-1 md:grid-cols-2 gap-24 max-w-7xl mx-auto">
+    
+    @if(session('error'))
+        <div class="col-span-full mb-8 p-6 bg-red-500/5 border border-red-500/10 text-red-500 text-xs font-black tracking-widest rounded-3xl uppercase text-center animate-pulse">
+            {{ session('error') }}
+        </div>
+    @endif
 
     <!-- GAMBAR -->
     <div class="relative group">

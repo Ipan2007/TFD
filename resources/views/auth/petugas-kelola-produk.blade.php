@@ -191,7 +191,7 @@
                                 </td>
                                 <td class="px-8 py-4 text-sm">
                                     <div class="flex items-center gap-2">
-                                        <button onclick="openEditModal({{ $product->id }}, '{{ addslashes($product->name) }}', '{{ addslashes($product->brand) }}', {{ $product->price }}, '{{ $product->kondisi }}', {{ $product->stok }}, '{{ $product->image }}', '{{ addslashes($product->description) }}')" 
+                                        <button onclick="openEditModal({{ $product->id }}, {{ json_encode($product->name) }}, {{ json_encode($product->brand) }}, {{ $product->price }}, {{ json_encode($product->kondisi) }}, {{ $product->stok }}, {{ json_encode($product->image) }}, {{ json_encode($product->description) }})" 
                                                 class="w-9 h-9 flex items-center justify-center bg-emerald-600/10 text-emerald-500 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-lg shadow-emerald-900/10" 
                                                 title="Edit Produk">
                                             <i data-lucide="pencil" class="w-4 h-4"></i>

@@ -77,7 +77,8 @@ Route::middleware('auth')->group(function () {
             $totalOrders = Order::count();
             $totalProducts = Product::count();
             $recentTransactions = Order::latest()->take(10)->get();
-            return view('auth.admin-dashboard', compact('totalRevenue', 'totalOrders', 'totalProducts', 'recentTransactions'));
+            $lowStockProducts = Product::where('stok', '<', 10)->get();
+            return view('auth.admin-dashboard', compact('totalRevenue', 'totalOrders', 'totalProducts', 'recentTransactions', 'lowStockProducts'));
         })->name('admin.dashboard');
 
         /* ================= CHAT ADMIN ================= */
@@ -217,6 +218,9 @@ Route::middleware('auth')->group(function () {
         })->name('admin.product.update');
 
         Route::delete('/admin/product/{product}', function (\App\Models\Product $product) {
+            if ($product->image && !str_starts_with($product->image, 'images/')) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+            }
             $product->delete();
             return response()->json(['success' => true, 'message' => 'Produk berhasil dihapus']);
         })->name('admin.product.delete');
@@ -305,8 +309,17 @@ Route::middleware('auth')->group(function () {
         })->name('admin.kelola-transaksi');
 
         Route::put('/admin/transaksi/{order}', function (\App\Models\Order $order, \Illuminate\Http\Request $request) {
+            \Illuminate\Support\Facades\Log::info('Admin updating transaction status', [
+                'order_id' => $order->id,
+                'old_status' => $order->status,
+                'new_status' => $request->status,
+                'no_resi' => $request->no_resi,
+                'admin_id' => auth()->id()
+            ]);
+
             $validated = $request->validate([
-                'status' => 'required|in:Menunggu Pembayaran,Menunggu Verifikasi,Diproses,Dikirim,Selesai,Dibatalkan'
+                'status' => 'required|in:Menunggu Pembayaran,Menunggu Verifikasi,Diproses,Dikirim,Selesai,Dibatalkan',
+                'no_resi' => 'nullable|string'
             ]);
 
             // Kunci jika status sudah Selesai atau Dibatalkan
@@ -324,11 +337,20 @@ Route::middleware('auth')->group(function () {
                 }
             }
 
+            // Auto-Status: Jika resi diisi dan status saat ini JUKUK 'Diproses', ubah ke 'Dikirim'
+            if ($request->filled('no_resi') && $order->status === 'Diproses') {
+                $validated['status'] = 'Dikirim';
+            }
+
             $order->update($validated);
             return response()->json(['success' => true, 'message' => 'Status transaksi berhasil diperbarui']);
         })->name('admin.transaksi.update');
 
-        /* ================= LAPORAN ================= */
+        Route::get('/admin/cetak-label/{order}', function (\App\Models\Order $order) {
+            $order->load(['items.product', 'user']);
+            return view('auth.shipping-label', compact('order'));
+        })->name('admin.cetak-label');
+
         Route::get('/admin/laporan', function () {
             $totalPendapatan = \App\Models\Order::sum('total');
             $totalProdukTerjual = \App\Models\OrderItem::sum('quantity');
@@ -354,8 +376,20 @@ Route::middleware('auth')->group(function () {
             $totalStok = \App\Models\Product::sum('stok');
             $totalTransaksi = \App\Models\Order::count();
             
-            return view('auth.admin-laporan', compact('totalPendapatan', 'totalProdukTerjual', 'laporanPenjualan', 'produkStok', 'laporanTransaksi', 'totalStok', 'totalTransaksi'));
+            // Get reviews
+            $reviews = \App\Models\OrderItem::whereNotNull('rating')
+                ->with(['order.user', 'product'])
+                ->orderBy('created_at', 'desc')
+                ->paginate(10, ['*'], 'reviews_page');
+            
+            return view('auth.admin-laporan', compact('totalPendapatan', 'totalProdukTerjual', 'laporanPenjualan', 'produkStok', 'laporanTransaksi', 'totalStok', 'totalTransaksi', 'reviews'));
         })->name('admin.laporan');
+
+        Route::post('/admin/review/reply/{item}', function (\App\Models\OrderItem $item, \Illuminate\Http\Request $request) {
+            $request->validate(['reply' => 'required|string']);
+            $item->update(['admin_reply' => $request->reply]);
+            return response()->json(['success' => true, 'message' => 'Balasan berhasil disimpan']);
+        })->name('admin.review.reply');
     });
 
     /* ================= PETUGAS DASHBOARD ================= */
@@ -365,7 +399,8 @@ Route::middleware('auth')->group(function () {
             $totalOrders = \App\Models\Order::count();
             $totalProducts = \App\Models\Product::count();
             $recentTransactions = \App\Models\Order::latest()->take(10)->get();
-            return view('auth.petugas-dashboard', compact('totalRevenue', 'totalOrders', 'totalProducts', 'recentTransactions'));
+            $lowStockProducts = \App\Models\Product::where('stok', '<', 10)->get();
+            return view('auth.petugas-dashboard', compact('totalRevenue', 'totalOrders', 'totalProducts', 'recentTransactions', 'lowStockProducts'));
         })->name('petugas.dashboard');
 
         /* ================= CHAT PETUGAS ================= */
@@ -428,6 +463,9 @@ Route::middleware('auth')->group(function () {
         })->name('petugas.product.update');
 
         Route::delete('/product/{product}', function (\App\Models\Product $product) {
+            if ($product->image && !str_starts_with($product->image, 'images/')) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($product->image);
+            }
             $product->delete();
             return response()->json(['success' => true, 'message' => 'Produk dihapus']);
         })->name('petugas.product.delete');
@@ -447,10 +485,47 @@ Route::middleware('auth')->group(function () {
         })->name('petugas.kelola-transaksi');
 
         Route::put('/transaksi/{order}', function (\App\Models\Order $order, \Illuminate\Http\Request $request) {
-            $validated = $request->validate(['status' => 'required|in:Menunggu Verifikasi,Diproses,Selesai,Dibatalkan']);
+            \Illuminate\Support\Facades\Log::info('Petugas updating transaction status', [
+                'order_id' => $order->id,
+                'old_status' => $order->status,
+                'new_status' => $request->status,
+                'no_resi' => $request->no_resi,
+                'petugas_id' => auth()->id()
+            ]);
+
+            $validated = $request->validate([
+                'status' => 'required|in:Menunggu Pembayaran,Menunggu Verifikasi,Diproses,Dikirim,Selesai,Dibatalkan',
+                'no_resi' => 'nullable|string'
+            ]);
+
+            // Kunci jika status sudah Selesai atau Dibatalkan
+            if (in_array($order->status, ['Selesai', 'Dibatalkan'])) {
+                return response()->json(['success' => false, 'message' => 'Status pesanan yang sudah Selesai atau Dibatalkan tidak dapat diubah lagi.'], 400);
+            }
+
+            // Kembalikan stok jika dibatalkan
+            if ($validated['status'] === 'Dibatalkan' && $order->status !== 'Dibatalkan') {
+                foreach ($order->items as $item) {
+                    $product = \App\Models\Product::find($item->product_id);
+                    if ($product) {
+                        $product->increment('stok', $item->quantity);
+                    }
+                }
+            }
+
+            // Auto-Status: Sama seperti admin
+            if ($request->filled('no_resi') && $order->status === 'Diproses') {
+                $validated['status'] = 'Dikirim';
+            }
+
             $order->update($validated);
             return response()->json(['success' => true, 'message' => 'Status transaksi diperbarui']);
         })->name('petugas.transaksi.update');
+
+        Route::get('/cetak-label/{order}', function (\App\Models\Order $order) {
+            $order->load(['items.product', 'user']);
+            return view('auth.shipping-label', compact('order'));
+        })->name('petugas.cetak-label');
 
         Route::get('/laporan', function () {
             $totalPendapatan = \App\Models\Order::sum('total');
@@ -480,6 +555,11 @@ Route::middleware('auth')->group(function () {
         $cart = session()->get('cart', []);
 
         $key = $product->id . '_' . $request->size;
+        
+        $currentQty = isset($cart[$key]) ? $cart[$key]['qty'] : 0;
+        if ($currentQty + 1 > $product->stok) {
+            return back()->with('error', 'Maaf, stok tidak mencukupi!');
+        }
 
         if (isset($cart[$key])) {
             $cart[$key]['qty']++;
@@ -523,6 +603,11 @@ Route::middleware('auth')->group(function () {
         
         if (isset($cart[$key])) {
             if ($request->action === 'plus') {
+                $productId = explode('_', $key)[0];
+                $product = \App\Models\Product::find($productId);
+                if ($product && $cart[$key]['qty'] + 1 > $product->stok) {
+                    return back()->with('error', 'Maaf, batas maksimal stok tercapai!');
+                }
                 $cart[$key]['qty']++;
             } elseif ($request->action === 'minus' && $cart[$key]['qty'] > 1) {
                 $cart[$key]['qty']--;
@@ -545,68 +630,70 @@ Route::middleware('auth')->group(function () {
     /* ================= PROSES CHECKOUT ================= */
 
     Route::post('/checkout/proses', function (Request $request) {
-
-    $request->validate([
-        'nama' => 'required',
-        'hp' => 'required',
-        'alamat' => 'required',
-        'metode' => 'required',
-        'kurir' => 'required'
-    ]);
-
-    $cart = session('cart', []);
-    if (!$cart) return back();
-
-    $total = 0;
-    foreach ($cart as $item) {
-        $total += $item['price'] * $item['qty'];
-    }
-
-    $ongkir = 0;
-    $kurir = $request->kurir;
-    if ($kurir === 'GoSend SameDay - Rp 25.000') $ongkir = 25000;
-    elseif ($kurir === 'JNE Reguler - Rp 15.000') $ongkir = 15000;
-    elseif ($kurir === 'J&T Express - Rp 15.000') $ongkir = 15000;
-    elseif ($kurir === 'SiCepat REG - Rp 12.000') $ongkir = 12000;
-
-    $order = Order::create([
-        'user_id' => Auth::id(),
-        'nama' => $request->nama,
-        'hp' => $request->hp,
-        'alamat' => $request->alamat,
-        'kurir' => $kurir,
-        'ongkir' => $ongkir,
-        'metode' => $request->metode,
-        'total' => $total + $ongkir,
-        'status' => $request->metode === 'COD' ? 'Menunggu Verifikasi' : 'Menunggu Pembayaran'
-    ]);
-
-    foreach ($cart as $key => $item) {
-        $parts = explode('_', $key);
-        $productId = $parts[0];
-        $size = $item['size'] ?? '-';
-
-        \App\Models\OrderItem::create([
-            'order_id' => $order->id,
-            'product_id' => $productId,
-            'product_name' => $item['name'] . ' (Size: ' . $size . ')',
-            'quantity' => $item['qty'],
-            'price' => $item['price'],
-            'subtotal' => $item['price'] * $item['qty']
+        $request->validate([
+            'nama' => 'required',
+            'hp' => 'required',
+            'alamat' => 'required',
+            'metode' => 'required',
+            'kurir' => 'required'
         ]);
 
-        $product = \App\Models\Product::find($productId);
-        if ($product) {
-            $product->stok -= $item['qty'];
-            $product->save();
+        $cart = session('cart', []);
+        if (!$cart) return back();
+
+        // 1. Double Stock Validation
+        foreach ($cart as $key => $item) {
+            $productId = explode('_', $key)[0];
+            $product = \App\Models\Product::find($productId);
+            if (!$product || $product->stok < $item['qty']) {
+                return back()->withErrors(['stok' => 'Maaf, stok untuk ' . $item['name'] . ' tidak mencukupi untuk memproses pesanan Anda.']);
+            }
         }
-    }
 
-    session()->forget('cart');
+        // 2. Simulated Dynamic Ongkir
+        $ongkir = 0;
+        $kurir = $request->kurir;
+        if (str_contains($kurir, '25.000')) $ongkir = 25000;
+        elseif (str_contains($kurir, '15.000')) $ongkir = 15000;
+        elseif (str_contains($kurir, '12.000')) $ongkir = 12000;
 
-    return redirect()->route('checkout.sukses')->with('order_id', $order->id);
+        // 3. Create Order
+        $total = collect($cart)->sum(fn($i) => $i['price'] * $i['qty']);
+        $order = Order::create([
+            'user_id' => Auth::id(),
+            'nama' => $request->nama,
+            'hp' => $request->hp,
+            'alamat' => $request->alamat,
+            'kurir' => $kurir,
+            'ongkir' => $ongkir,
+            'metode' => $request->metode,
+            'total' => $total + $ongkir,
+            'status' => $request->metode === 'COD' ? 'Menunggu Verifikasi' : 'Menunggu Pembayaran',
+            'expired_at' => $request->metode === 'COD' ? null : now()->addHours(24)
+        ]);
 
-})->name('checkout.proses');
+        // 4. Record Items & Final Stock Check/Decrement
+        foreach ($cart as $key => $item) {
+            $productId = explode('_', $key)[0];
+            $size = $item['size'] ?? '-';
+            
+            \App\Models\OrderItem::create([
+                'order_id' => $order->id,
+                'product_id' => $productId,
+                'product_name' => $item['name'] . ' (Size: ' . $size . ')',
+                'quantity' => $item['qty'],
+                'price' => $item['price'],
+                'subtotal' => $item['price'] * $item['qty']
+            ]);
+
+            \App\Models\Product::where('id', $productId)->decrement('stok', $item['qty']);
+        }
+
+        session()->forget('cart');
+        \Illuminate\Support\Facades\Log::info('Order Created: #' . $order->id, ['user' => Auth::user()->name]);
+
+        return redirect()->route('checkout.sukses')->with('order_id', $order->id);
+    })->name('checkout.proses');
     /* ================= SUKSES ================= */
 
     Route::get('/checkout-sukses', function () {
@@ -651,7 +738,7 @@ Route::middleware('auth')->group(function () {
             return response()->json(['success' => false, 'message' => 'Pesanan tidak dalam status pengiriman.'], 400);
         }
         $order->update(['status' => 'Selesai']);
-        return response()->json(['success' => true, 'message' => 'Gugugaga! Pesanan berhasil dikonfirmasi diterima. Terima kasih!']);
+        return response()->json(['success' => true, 'message' => 'Terima kasih! Konfirmasi penerimaan pesanan Anda telah berhasil dicatat.']);
     })->name('user.pesanan.terima');
 
     Route::post('/pesanan/review/{item}', function (\App\Models\OrderItem $item, \Illuminate\Http\Request $request) {
@@ -699,6 +786,14 @@ Route::middleware('auth')->group(function () {
         $order->update(['status' => 'Dibatalkan']);
         return response()->json(['success' => true, 'message' => 'Pesanan berhasil dibatalkan.']);
     })->name('user.pesanan.batalkan');
+
+    Route::get('/pesanan/invoice/{order}', function (\App\Models\Order $order) {
+        if (auth()->id() !== $order->user_id && !auth()->user()->isAdmin() && !auth()->user()->isPetugas()) {
+            abort(403);
+        }
+        $order->load(['items.product', 'user']);
+        return view('auth.invoice', compact('order'));
+    })->name('pesanan.invoice');
 
     /* ================= CHAT PELANGGAN ================= */
     Route::get('/chat/messages', [ChatController::class, 'getUserChats'])->name('chat.messages');

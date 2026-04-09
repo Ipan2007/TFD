@@ -198,8 +198,10 @@
                                 <td class="px-8 py-4 text-sm">
                                     @php
                                         $statusColors = [
+                                            'Menunggu Pembayaran' => 'bg-orange-500 bg-opacity-20 text-orange-400',
                                             'Menunggu Verifikasi' => 'bg-blue-500 bg-opacity-20 text-blue-400',
                                             'Diproses' => 'bg-yellow-500 bg-opacity-20 text-yellow-400',
+                                            'Dikirim' => 'bg-purple-500 bg-opacity-20 text-purple-400',
                                             'Selesai' => 'bg-green-500 bg-opacity-20 text-green-400',
                                             'Dibatalkan' => 'bg-red-500 bg-opacity-20 text-red-400'
                                         ];
@@ -210,11 +212,31 @@
                                 </td>
                                 <td class="px-8 py-4 text-sm">
                                     <div class="flex items-center gap-2">
-                                        <button onclick="openStatusModal({{ $order->id }}, '{{ $order->status }}')" 
+                                        <button onclick="viewDetail(this)" 
+                                                data-order-id="{{ $order->id }}"
+                                                data-transaction-id="{{ $order->transaction_id ?? '#TRX-' . str_pad($order->id, 5, '0', STR_PAD_LEFT) }}"
+                                                data-nama="{{ $order->nama }}"
+                                                data-hp="{{ $order->hp }}"
+                                                data-alamat="{{ $order->alamat }}"
+                                                data-metode="{{ $order->metode }}"
+                                                data-total="{{ $order->total }}"
+                                                data-status="{{ $order->status }}"
+                                                data-bukti="{{ $order->bukti_pembayaran }}"
+                                                data-items="{{ json_encode($order->items) }}"
+                                                class="w-9 h-9 flex items-center justify-center bg-gray-600/10 text-gray-400 rounded-lg hover:bg-gray-600 hover:text-white transition shadow-lg shadow-gray-900/10" 
+                                                title="Detail Transaksi">
+                                            <i data-lucide="eye" class="w-4 h-4"></i>
+                                        </button>
+                                        <button onclick="openStatusModal({{ $order->id }}, '{{ $order->status }}', '{{ $order->no_resi }}')" 
                                                 class="w-9 h-9 flex items-center justify-center bg-blue-600/10 text-blue-500 rounded-lg hover:bg-blue-600 hover:text-white transition shadow-lg shadow-blue-900/10" 
                                                 title="Update Status">
                                             <i data-lucide="refresh-cw" class="w-4 h-4"></i>
                                         </button>
+                                        <a href="{{ route('admin.cetak-label', $order->id) }}" target="_blank"
+                                                class="w-9 h-9 flex items-center justify-center bg-emerald-600/10 text-emerald-500 rounded-lg hover:bg-emerald-600 hover:text-white transition shadow-lg shadow-emerald-900/10" 
+                                                title="Cetak Label Pengiriman">
+                                            <i data-lucide="printer" class="w-4 h-4"></i>
+                                        </a>
                                         <button onclick="deleteOrder({{ $order->id }})" 
                                                 class="w-9 h-9 flex items-center justify-center bg-red-600/10 text-red-500 rounded-lg hover:bg-red-600 hover:text-white transition shadow-lg shadow-red-900/10" 
                                                 title="Hapus Transaksi">
@@ -261,52 +283,94 @@
 </div>
 
 <!-- DETAIL MODAL -->
-<div id="detailModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div class="bg-gray-800 border border-gray-700 rounded-lg p-8 w-96 shadow-xl max-h-96 overflow-y-auto">
-        <h3 class="text-xl font-bold text-white mb-6">Detail Transaksi</h3>
+<div id="detailModal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div class="bg-gray-900 border border-gray-800 rounded-3xl p-8 w-full max-w-4xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-y-auto max-h-[90vh]">
+        <div class="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
+            <h3 class="text-2xl font-black text-white tracking-tight">Detail Pesanan</h3>
+            <span id="detailStatusBadge" class="px-3 py-1 bg-blue-600/20 text-blue-400 text-[10px] rounded-full border border-blue-600/30 uppercase tracking-wider font-extrabold">STATUS</span>
+        </div>
         
         <input type="hidden" id="detailId">
         
-        <div class="space-y-4">
-            <div>
-                <p class="text-gray-400 text-sm">ID Transaksi</p>
-                <p id="detailTransactionId" class="text-white font-medium"></p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <!-- Left: Customer & Payment Info -->
+            <div class="space-y-8">
+                <section>
+                    <h4 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Informasi Pengiriman</h4>
+                    <div class="bg-black/40 p-6 rounded-2xl border border-gray-800 space-y-4">
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">ID Transaksi</p>
+                            <p id="detailTransactionId" class="text-white font-bold text-sm"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Pelanggan</p>
+                            <p id="detailNama" class="text-white font-bold"></p>
+                            <p id="detailHp" class="text-blue-500/70 text-xs font-medium"></p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Alamat Lengkap</p>
+                            <p id="detailAlamat" class="text-gray-300 text-xs leading-relaxed"></p>
+                        </div>
+                        <div class="pt-2 border-t border-gray-800/50">
+                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-widest mb-1">Metode Pembayaran</p>
+                            <p id="detailMetode" class="text-white font-bold text-xs"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h4 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Bukti Pembayaran</h4>
+                    <div id="buktiContainer" class="hidden">
+                        <div class="relative group bg-black rounded-2xl overflow-hidden border border-gray-800 aspect-video flex items-center justify-center">
+                            <img id="detailBukti" src="" alt="Bukti Pembayaran" class="max-h-full transition duration-500 group-hover:scale-110">
+                            <div class="absolute inset-0 bg-blue-600/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                                <button onclick="window.open(document.getElementById('detailBukti').src, '_blank')" class="bg-white text-black px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-transform">Lihat Fullscreen</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="noBuktiContainer" class="py-10 bg-black/20 rounded-2xl border-2 border-dashed border-gray-800 flex flex-col items-center justify-center gap-3">
+                        <i data-lucide="image-off" class="w-8 h-8 text-gray-700"></i>
+                        <p class="text-gray-600 text-[10px] uppercase font-bold tracking-widest">Belum ada bukti pembayaran</p>
+                    </div>
+                </section>
             </div>
-            
-            <div>
-                <p class="text-gray-400 text-sm">Nama Pelanggan</p>
-                <p id="detailNama" class="text-white font-medium"></p>
-            </div>
-            
-            <div>
-                <p class="text-gray-400 text-sm">No. Telepon</p>
-                <p id="detailHp" class="text-white font-medium"></p>
-            </div>
-            
-            <div>
-                <p class="text-gray-400 text-sm">Alamat</p>
-                <p id="detailAlamat" class="text-white font-medium"></p>
-            </div>
-            
-            <div>
-                <p class="text-gray-400 text-sm">Metode Pembayaran</p>
-                <p id="detailMetode" class="text-white font-medium"></p>
-            </div>
-            
-            <div>
-                <p class="text-gray-400 text-sm">Total Pembayaran</p>
-                <p id="detailTotal" class="text-white font-medium text-lg"></p>
-            </div>
-            
-            <div>
-                <p class="text-gray-400 text-sm">Status</p>
-                <p id="detailStatus" class="text-white font-medium"></p>
+
+            <!-- Right: Order Items -->
+            <div class="flex flex-col">
+                <h4 class="text-xs font-black text-blue-500 uppercase tracking-[0.2em] mb-4">Ringkasan Pesanan</h4>
+                <div class="flex-1 bg-black/40 rounded-2xl border border-gray-800 overflow-hidden flex flex-col">
+                    <div class="flex-1 overflow-y-auto max-h-[400px]">
+                        <table class="w-full text-left">
+                            <thead class="sticky top-0 bg-black">
+                                <tr class="border-b border-gray-800">
+                                    <th class="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest">Item</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Qty</th>
+                                    <th class="px-6 py-4 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailItemsBody" class="divide-y divide-gray-800/50">
+                                <!-- JS injected content -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="p-6 bg-black/60 border-t border-gray-800">
+                        <div class="flex justify-between items-end">
+                            <p class="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em]">Total Pembayaran</p>
+                            <p id="detailTotal" class="text-2xl font-black text-blue-400 tracking-tighter"></p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex gap-4 mt-8">
+                    <button type="button" onclick="closeDetailModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-lg active:scale-95">
+                        Tutup Detail
+                    </button>
+                    <a id="detailCetakLabel" href="#" target="_blank" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                        <i data-lucide="printer" class="w-3 h-3"></i> Cetak Label
+                    </a>
+                </div>
             </div>
         </div>
-        
-        <button type="button" onclick="closeDetailModal()" class="w-full mt-6 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-white font-medium transition">
-            Tutup
-        </button>
     </div>
 </div>
 
@@ -325,9 +389,25 @@
                        class="w-full bg-gray-700 border border-gray-600 rounded px-4 py-2 text-white focus:outline-none focus:border-blue-500">
                     <option value="Menunggu Verifikasi">Menunggu Verifikasi</option>
                     <option value="Diproses">Diproses</option>
+                    <option value="Dikirim">Dikirim</option>
                     <option value="Selesai">Selesai</option>
                     <option value="Dibatalkan">Dibatalkan</option>
                 </select>
+            </div>
+
+            <div class="mb-6" id="resiInputContainer">
+                <label class="block text-sm font-medium text-gray-300 mb-2">Nomor Resi (Opsional)</label>
+                <div class="relative group">
+                    <input type="text" id="resiInput" placeholder="Masukkan nomor resi pengiriman..."
+                           oninput="handleResiInput(this)"
+                           class="w-full bg-gray-700 border border-gray-600 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-blue-500 transition-all pr-12">
+                    <button type="button" onclick="generateSimulatedResi()" 
+                            class="absolute right-2 top-1.5 p-2 text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-all"
+                            title="Simulasi Generate Resi (Untuk Demo)">
+                        <i data-lucide="sparkles" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p id="resiHint" class="text-[10px] text-gray-500 mt-2 uppercase italic transition-all">Diperlukan jika status diubah menjadi 'Dikirim'</p>
             </div>
 
             <div class="flex gap-3">
@@ -364,7 +444,24 @@
     });
 
     // Detail Modal Functions
-    function openDetailModal(id, transactionId, nama, hp, alamat, metode, total, status) {
+    function viewDetail(button) {
+        const id = button.getAttribute('data-order-id');
+        const transactionId = button.getAttribute('data-transaction-id');
+        const nama = button.getAttribute('data-nama');
+        const hp = button.getAttribute('data-hp');
+        const alamat = button.getAttribute('data-alamat');
+        const metode = button.getAttribute('data-metode');
+        const total = button.getAttribute('data-total');
+        const status = button.getAttribute('data-status');
+        const bukti = button.getAttribute('data-bukti');
+        const items = JSON.parse(button.getAttribute('data-items'));
+
+        document.getElementById('detailCetakLabel').href = `/admin/cetak-label/${id}`;
+
+        openDetailModal(id, transactionId, nama, hp, alamat, metode, total, status, bukti, items);
+    }
+
+    function openDetailModal(id, transactionId, nama, hp, alamat, metode, total, status, bukti, items) {
         document.getElementById('detailId').value = id;
         document.getElementById('detailTransactionId').textContent = transactionId;
         document.getElementById('detailNama').textContent = nama;
@@ -372,8 +469,52 @@
         document.getElementById('detailAlamat').textContent = alamat;
         document.getElementById('detailMetode').textContent = metode;
         document.getElementById('detailTotal').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(total);
-        document.getElementById('detailStatus').textContent = status;
+        
+        const statusBadge = document.getElementById('detailStatusBadge');
+        if (statusBadge) {
+            statusBadge.textContent = status.toUpperCase();
+            const statusColors = {
+                'Menunggu Pembayaran': 'bg-orange-500/20 text-orange-400 border-orange-600/30',
+                'Menunggu Verifikasi': 'bg-blue-500/20 text-blue-400 border-blue-600/30',
+                'Diproses': 'bg-yellow-500/20 text-yellow-400 border-yellow-600/30',
+                'Dikirim': 'bg-purple-500/20 text-purple-400 border-purple-600/30',
+                'Selesai': 'bg-green-500/20 text-green-400 border-green-600/30',
+                'Dibatalkan': 'bg-red-500/20 text-red-400 border-red-600/30'
+            };
+            statusBadge.className = `px-3 py-1 ${statusColors[status] || 'bg-gray-600/20 text-gray-400 border-gray-600/30'} text-[10px] rounded-full border uppercase tracking-wider font-extrabold`;
+        }
+
+        const buktiContainer = document.getElementById('buktiContainer');
+        const noBuktiContainer = document.getElementById('noBuktiContainer');
+        const detailBukti = document.getElementById('detailBukti');
+        
+        if (bukti && bukti !== 'null' && bukti !== '') {
+            detailBukti.src = "{{ asset('storage') }}/" + bukti;
+            buktiContainer.classList.remove('hidden');
+            noBuktiContainer.classList.add('hidden');
+        } else {
+            buktiContainer.classList.add('hidden');
+            noBuktiContainer.classList.remove('hidden');
+        }
+
+        const itemsBody = document.getElementById('detailItemsBody');
+        itemsBody.innerHTML = '';
+        items.forEach(item => {
+            itemsBody.innerHTML += `
+                <tr>
+                    <td class="px-6 py-4">
+                        <p class="text-white font-bold text-xs">${item.product_name}</p>
+                        <p class="text-gray-500 text-[9px] uppercase tracking-widest font-black mt-0.5">ID Product: #${item.product_id}</p>
+                        <p class="text-blue-500/60 text-[9px] font-bold mt-0.5">Price: Rp ${new Intl.NumberFormat('id-ID').format(item.price)}</p>
+                    </td>
+                    <td class="px-6 py-4 text-center text-gray-300 font-bold text-xs">${item.quantity}</td>
+                    <td class="px-6 py-4 text-right text-white font-black text-xs">Rp ${new Intl.NumberFormat('id-ID').format(item.subtotal)}</td>
+                </tr>
+            `;
+        });
+
         document.getElementById('detailModal').classList.remove('hidden');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     function closeDetailModal() {
@@ -381,10 +522,11 @@
     }
 
     // Status Update Modal Functions
-    function openStatusModal(id, currentStatus) {
+    function openStatusModal(id, currentStatus, currentResi = '') {
         updateOrderId = id;
         document.getElementById('statusOrderId').value = id;
         document.getElementById('statusSelect').value = currentStatus;
+        document.getElementById('resiInput').value = currentResi && currentResi !== 'null' ? currentResi : '';
         document.getElementById('statusModal').classList.remove('hidden');
     }
 
@@ -393,30 +535,66 @@
         updateOrderId = null;
     }
 
+    function handleResiInput(input) {
+        const statusSelect = document.getElementById('statusSelect');
+        const hint = document.getElementById('resiHint');
+        
+        if (input.value.trim() !== '' && statusSelect.value === 'Diproses') {
+            statusSelect.value = 'Dikirim';
+            hint.textContent = 'Smart Mode: Status otomatis diubah ke DIKIRIM';
+            hint.classList.remove('text-gray-500');
+            hint.classList.add('text-blue-400', 'font-bold');
+        } else if (input.value.trim() === '') {
+            hint.textContent = "Diperlukan jika status diubah menjadi 'Dikirim'";
+            hint.classList.remove('text-blue-400', 'font-bold');
+            hint.classList.add('text-gray-500');
+        }
+    }
+
+    function generateSimulatedResi() {
+        const input = document.getElementById('resiInput');
+        const randomStr = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const prefixes = ['TFD-JNE-', 'TFD-JNT-', 'TFD-SCP-', 'TFD-EXP-'];
+        const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+        
+        input.value = randomPrefix + randomStr;
+        handleResiInput(input);
+        
+        // Visual feedback
+        input.classList.add('ring-2', 'ring-blue-500');
+        setTimeout(() => input.classList.remove('ring-2', 'ring-blue-500'), 1000);
+    }
+
     function submitStatusUpdate(event) {
         event.preventDefault();
 
         const newStatus = document.getElementById('statusSelect').value;
+        const noResi = document.getElementById('resiInput').value;
 
         fetch(`/admin/transaksi/${updateOrderId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
             },
-            body: JSON.stringify({ status: newStatus })
+            body: JSON.stringify({ status: newStatus, no_resi: noResi })
         })
-        .then(response => response.json())
-        .then(result => {
-            if (result.success) {
-                alert(result.message);
-                closeStatusModal();
+        .then(async response => {
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message || 'Status berhasil diperbarui');
                 location.reload();
             } else {
-                alert('Error: ' + result.message);
+                // Tangani error validasi Laravel (422) atau error lainnya
+                const errorMessage = result.message || (result.errors ? Object.values(result.errors).flat().join('\n') : 'Terjadi kesalahan sistem');
+                alert('Gagal: ' + errorMessage);
             }
         })
-        .catch(error => console.error('Error:', error));
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error: Koneksi bermasalah atau server error');
+        });
     }
 
     // Close modals when clicking outside
